@@ -17,6 +17,7 @@ variable "security_group_ids" {
 }
 variable "subnet_ids" {
   type = list
+  default = []
 }
 variable "ssl_certificate_arn" {
   type = string
@@ -31,6 +32,7 @@ variable "min_size" {
   type = string
 }
 
+# VPC
 data "aws_vpc" "default" {
   default = true
 }
@@ -39,6 +41,16 @@ data "aws_vpc" "selected" {
   id = (var.vpc_id == "" ? data.aws_vpc.default.id : var.vpc_id)
 }
 
+# Subnets
+module "default_subnets" {
+  source = "git@github.com:strouptl/terraform-aws-subnets-fetcher.git"
+}
+
+locals {
+  subnet_ids = (var.subnet_ids == [] ? module.default_subnets.ids : var.subnet_ids)
+}
+
+# S3 Bucket
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket
 data "aws_s3_bucket" "logs" {
   bucket = var.log_bucket_name
@@ -49,13 +61,14 @@ resource "aws_s3_object" "log_directory" {
   key    = "${var.name}/"
 }
 
+# Load Balancer
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb
 resource "aws_lb" "main" {
   name               = var.name
   internal           = false
   load_balancer_type = "application"
   security_groups    = var.security_group_ids
-  subnets            = var.subnet_ids
+  subnets            = local.subnet_ids
 
   enable_deletion_protection = true
 
@@ -124,10 +137,11 @@ resource "aws_lb_target_group" "main" {
   }
 }
 
+# Autoscaling Group
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/autoscaling_group
 resource "aws_autoscaling_group" "default" {
   name               = var.name
-  vpc_zone_identifier = var.subnet_ids
+  vpc_zone_identifier = local.subnet_ids
   health_check_type         = "ELB"
   health_check_grace_period = 120
   default_cooldown          = 60
@@ -143,6 +157,7 @@ resource "aws_autoscaling_group" "default" {
   }
 }
 
+# Output
 output "load_balancer_arn" {
   value = resource.aws_lb_target_group.main.arn
 }
