@@ -32,6 +32,30 @@ variable "min_size" {
   type = string
 }
 
+# Health Check Settings
+variable "health_check_path" {
+  type = string
+  default = "/up"
+}
+variable "health_check_protocol" {
+  type = string
+  default = "HTTP"
+}
+variable "health_check_port" {
+  type = number
+}
+variable "health_check_timeout" {
+  type = number
+  default = 4
+}
+variable "health_check_unhealthy_threshold" {
+  type = number
+  default = 2
+}
+locals {
+  health_check_port = (var.health_check_port != "" ? var.health_check_port : (var.health_check_protocol == "HTTPS" ? 443 : 80))
+}
+
 # VPC
 data "aws_vpc" "default" {
   default = true
@@ -126,14 +150,14 @@ resource "aws_lb_target_group" "main" {
   deregistration_delay = 60
 
   health_check {
-    protocol = "HTTPS"
-    path = "/health_check"
-    port = 3001
+    protocol = var.health_check_protocol
+    path = var.health_check_path
+    port = local.health_check_port
     matcher = 200
     interval = 5
-    timeout = 2
+    timeout = var.health_check_timeout
     healthy_threshold = 2
-    unhealthy_threshold = 2
+    unhealthy_threshold = var.health_check_unhealthy_threshold
   }
 }
 
