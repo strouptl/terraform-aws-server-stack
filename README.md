@@ -19,7 +19,7 @@ Insert the following into your main.tf file:
     }
     
     module "example-load-balancer" {
-      source = "git@github.com:strouptl/terraform-aws-server-stack.git?ref=0.1.1"
+      source = "git@github.com:strouptl/terraform-aws-server-stack.git?ref=0.2.0"
       name = "example"
       desired_capacity = 2
       min_size = 1
@@ -42,6 +42,12 @@ Insert the following into your main.tf file:
 ## Additional Options
 1. vpc_id (defaults to the default VPC)
 2. subnet_ids (defaults to all public subnets in the selected VPC)
+3. health check settings (defaults to Rails built-in health check)
+   - health_check_path (defaults to "/up")
+   - health_check_protocol (defaults to "HTTP")
+   - health_check_port (defaults to 80 for HTTP, or 443 for HTTPS)
+   - health_check_timeout (defaults to 4)
+   - health_check_unhealthy_threshold (defaults to 2)
 
 
 ## Example Usage: aws-security-groups
@@ -67,7 +73,7 @@ Insert the following into your main.tf file:
     
     # Server Stack
     module "example-load-balancer" {
-      source = "git@github.com:strouptl/terraform-aws-server-stack.git?ref=0.1.1"
+      source = "git@github.com:strouptl/terraform-aws-server-stack.git?ref=0.2.0"
       name = "example"
       desired_capacity = 2
       min_size = 1
